@@ -128,4 +128,4 @@ Ablation каждой из предлагаемых стадий:
 
 ### **References**
 
-[1] Karpukhin et al. "Dense passage retrieval for open-domain question answering", 2020
+[1] Karpukhin et al. [Dense passage retrieval for open-domain question answering](https://arxiv.org/abs/2004.04906), 2020
