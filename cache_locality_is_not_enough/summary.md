@@ -263,4 +263,4 @@ PQ Fast Scan - значительно более быстрая альтерна
 
 ### **References**
 
-[1]  H. J ́egou, M. Douze, C. Schmid. [Product quantization for nearest neighbor search](https://lear.inrialpes.fr/pubs/2011/JDS11/jegou_searching_with_quantization.pdf), 2011
+[1]  H. J ́egou, M. Douze, C. Schmid. 2011. [Product quantization for nearest neighbor search](https://lear.inrialpes.fr/pubs/2011/JDS11/jegou_searching_with_quantization.pdf)
