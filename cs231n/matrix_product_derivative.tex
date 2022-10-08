@@ -1,6 +1,7 @@
 \documentclass[12pt]{article}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{derivative}
 
 \begin{document}
 
@@ -10,9 +11,9 @@
 \maketitle
 
 Let $A \in \mathbb{R}^{N \times D}$, $B \in \mathbb{R}^{D \times M}$, 
-$f: \mathbb{R}^{N \times M} \rightarrow \mathbb{R}$ is a differentiable function, $C = AB$, $f(C) = y$. We also know $\frac{\partial y}{\partial C}$. 
+$f: \mathbb{R}^{N \times M} \rightarrow \mathbb{R}$ is a differentiable function, $C = AB$, $f(C) = y$. We also know $\pdv{y}{C}$. 
 
-Derive $\frac{\partial y}{\partial A}$, $\frac{\partial y}{\partial B}$.
+Derive $\pdv{y}{A}$, $\pdv{y}{B}$.
 
 Let's make a simple example: $N = D = M = 2$. Then
 
@@ -40,9 +41,9 @@ Let's make a simple example: $N = D = M = 2$. Then
 \item Let's consider first row of $A = a$ and first column of $B = b$.  
 Then $c_0 = a \cdot b = a_0b_0 + a_1b_2$ is a scalar.  
 \[
-	\frac{\partial y}{\partial a_0} = 
-	\frac{\partial y}{\partial c_0} \frac{\partial c_0}{\partial a_0} = 
-	\frac{\partial y}{\partial c_0} b_0
+	\pdv{y}{a_0} = 
+	\pdv{y}{c_0} \pdv{c_0}{a_0} = 
+	\pdv{y}{c_0} b_0
 \]
 \item Let's consider first row of $A = a$ and full matrix $B$.  
 Then $
@@ -51,10 +52,10 @@ c = aB =
 \begin{bmatrix}a_0b_0 + a_1b_2 & a_0b_1 + a_1b_3\end{bmatrix} 
 $ is a row vector.  
 \[
-	\frac{\partial y}{\partial a_0} = 
-	\frac{\partial y}{\partial c} \frac{\partial c}{\partial a_0} = 
+	\pdv{y}{a_0} = 
+	\pdv{y}{c} \pdv{c}{a_0} = 
 	\begin{bmatrix}
-		\frac{\partial y}{\partial c_0} & \frac{\partial y}{\partial c_1}
+		\pdv{y}{c_0} & \pdv{y}{c_1}
 	\end{bmatrix} 
 	\begin{bmatrix} 
 		b_0 & b_1
@@ -65,11 +66,11 @@ $ is a row vector.
 Note that:
 
 \begin{itemize}
-\item left operand is i-th row in $\frac{\partial y}{\partial C}$, $0 \le i < N$
+\item left operand is i-th row in $\pdv{y}{C}$, $0 \le i < N$
 \item right operand is transposed j-th row in $B$, $0 \le j < D$  
 \end{itemize}
 
-So, $\frac{\partial y}{\partial A} = \frac{\partial y}{\partial C} B^\top$.
+So, $\pdv{y}{A} = \pdv{y}{C} B^\top$.
 
 \section{$\frac{\partial y}{\partial B}$}
 
@@ -77,9 +78,9 @@ So, $\frac{\partial y}{\partial A} = \frac{\partial y}{\partial C} B^\top$.
 \item Let's consider first row of $A = a$ and first column of $B = b$.  
 Then $c_0 = a \cdot b = a_0b_0 + a_1b_2$ is a scalar.  
 \[
-	\frac{\partial y}{\partial b_0} = 
-	\frac{\partial y}{\partial c_0} \frac{\partial c_0}{\partial b_0} = 
-	\frac{\partial y}{\partial c_0} a_0
+	\pdv{y}{b_0} = 
+	\pdv{y}{c_0} \pdv{c_0}{b_0} = 
+	\pdv{y}{c_0} a_0
 \]
 \item Let's consider full matrix $A$ and first column of $B = b$.  
 Then $
@@ -88,10 +89,10 @@ c = Ab =
 \begin{bmatrix}a_0b_0 + a_1b_2 \\ a_2b_0 + a_3b_2\end{bmatrix}
 $ is a column vector.  
 \[
-	\frac{\partial y}{\partial b_0} = 
-	\frac{\partial y}{\partial c} \frac{\partial c}{\partial b_0} = 
+	\pdv{y}{b_0} = 
+	\pdv{y}{c} \pdv{c}{b_0} = 
 	\begin{bmatrix}
-		\frac{\partial y}{\partial c_0} \\ \frac{\partial y}{\partial c_2}
+		\pdv{y}{c_0} \\ \pdv{y}{c_2}
 	\end{bmatrix} ^\top	
 	\begin{bmatrix} 
 		a_0 \\ a_2
@@ -100,7 +101,7 @@ $ is a column vector.
 		a_0 \\ a_2
 	\end{bmatrix} ^\top
 	\begin{bmatrix}
-		\frac{\partial y}{\partial c_0} \\ \frac{\partial y}{\partial c_2}
+		\pdv{y}{c_0} \\ \pdv{y}{c_2}
 	\end{bmatrix}
 \] 
 \end{enumerate}
@@ -109,9 +110,9 @@ Note that:
 
 \begin{itemize}
 \item left operand is transposed i-th column in $A$, $0 \le i < D$  
-\item right operand is j-th column in $\frac{\partial y}{\partial C}$, $0 \le j < M$  
+\item right operand is j-th column in $\pdv{y}{C}$, $0 \le j < M$  
 \end{itemize}
 
-So, $\frac{\partial y}{\partial B} = A^\top \frac{\partial y}{\partial C}$.
+So, $\pdv{y}{B} = A^\top \pdv{y}{C}$.
 
 \end{document}
