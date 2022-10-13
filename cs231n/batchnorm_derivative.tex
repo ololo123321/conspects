@@ -1,0 +1,116 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{derivative}
+
+\begin{document}
+
+\title{Derivative of BatchNorm operation w.r.t $X$}
+\author{Kadulin V.}
+%\date{}
+\maketitle
+
+Let $Y = \gamma \hat{X} + \beta$, where 
+$\hat{X} \in \mathbb{R}^{N \times D}$, 
+$\gamma \in \mathbb{R}^D$, 
+$\beta \in \mathbb{R}^D$, 
+$\hat{X} = \frac{X - \mu}{\sigma}$, 
+$\mu = \frac{1}{N} \sum_{i=1}^{N} x_{i}$,
+$\sigma = \sqrt{v + \epsilon}$,
+$v = \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu)^2$,
+$\epsilon \in \mathbb{R}$ is a small scalar to omit zero division. 
+Let $f: \mathbb{R}^{N \times D} \rightarrow \mathbb{R}$ is a differentiable scalar function. We also know $\pdv{f}{Y}$.
+Derive $\pdv{f}{X}$.
+
+Notice that
+\begin{itemize}
+\item $y_i$ depends on $x_j$, where $1 \le j \le N$
+\item there is only per-column dependency: $y_{ij}$ depends on $x_{kj}$, where $1 \le k \le N$
+\end{itemize}
+
+Consider first column of $X$ as $x$.
+
+\begin{equation*}
+\begin{split}
+y = \gamma \hat{x} + \beta \\
+y, x, \hat{x} \in \mathbb{R}^N \\
+\gamma, \beta, \mu, v, \sigma \in \mathbb{R}
+\end{split}
+\end{equation*}
+
+Let's consider $j$-th element of $x$ as $x_j$.
+
+\[
+	\pdv{f}{x_j} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\hat{x_i}} \pdv{\hat{x_i}}{x_j}
+\]
+
+Let's derive expressions for building blocks:
+
+$\pdv{y}{\hat{x_i}} = \gamma$ 
+
+$\pdv{\hat{x_i}}{x_j} = 
+\pdv{(x_i - \mu)}{x_j} (v + \epsilon)^{-\frac{1}{2}} + (x_i - \mu) (-\frac{1}{2}) (v + \epsilon)^{-\frac{3}{2}} \pdv{(v + \epsilon)}{x_j}$
+
+$\pdv{\mu}{x_j} = \frac{1}{N}$
+
+$
+\pdv{x_i}{x_j} = 
+\begin{cases}
+1 &\text{$i = j$}\\
+0 &\text{$i \ne j$}
+\end{cases}
+$
+
+Let's derive $\pdv{v}{x_j}$.
+
+Consider $i$-th component of sum in $v$ as $y_i$.
+
+$
+\pdv{y_i}{x_j} = 
+\begin{cases}
+2 (x_i - \mu) (1 - \frac{1}{N}) = -\frac{2}{N} (x_i - \mu) + 2(x_i - \mu) & \text{$i = j$} \\
+-\frac{2}{N} (x_i - \mu) & \text{$i = j$}
+\end{cases}
+$ 
+
+So, $\pdv{v}{x_j} = \frac{1}{N} ( -\frac{2}{N} \sum_{i=1}^{N}(x_i - \mu) + 2(x_j - \mu))$.
+
+Note, that $\sum_{i=1}^{N}(x_i - \mu) = \sum_{i=1}^{N} x_i - N \mu = N \mu - N \mu = 0$.
+
+So, $\pdv{v}{x_j} = \frac{2}{N} (x_j - \mu)$.
+
+Now we can expand $\pdv{\hat{x_i}}{x_j}$. Let's do it in case $i \ne j$:
+
+\begin{gather*}
+\begin{split}
+\pdv{\hat{x_i}}{x_j} =
+-\frac{1}{N} (v + \epsilon)^{-\frac{1}{2}} + (x_i - \mu) (-\frac{1}{2}) (v + \epsilon)^{-\frac{3}{2}} \frac{2}{N}(x_j - \mu) = \\
+-\frac{1}{N} (v + \epsilon)^{-\frac{1}{2}} (1 + (x_i - \mu) (x_j - \mu) (v + \epsilon)^{-1})
+\end{split}
+\end{gather*}
+
+Note that the only difference of case $i = j$ is first multiplier of first term: it's $1 - \frac{1}{N}$ insted of $-\frac{1}{N}$.
+
+Now we have all to derive $\pdv{f}{x_j}$:
+
+\begin{gather*}
+\pdv{f}{x_j} = 
+\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\hat{x_i}} \pdv{\hat{x_i}}{x_j} = 
+\gamma \sum_{i=1}^{N} \pdv{f}{y_i} \pdv{\hat{x_i}}{x_j} = \\
+\gamma \left( \sum_{i=1}^{N} -\frac{1}{N} (v + \epsilon)^{-\frac{1}{2}} (1 + (x_i - \mu) (x_j - \mu) (v + \epsilon)^{-1}) \pdv{f}{y_i} + (v + \epsilon)^{-\frac{1}{2}} \pdv{f}{y_j} \right) = \\
+\gamma (v + \epsilon)^{-\frac{1}{2}} \left( -\frac{1}{N} \sum_{i=1}^{N} (1 + (x_i - \mu) (x_j - \mu) (v + \epsilon)^{-1}) \pdv{f}{y_i} + \pdv{f}{y_j} \right) = \\
+\gamma (v + \epsilon)^{-\frac{1}{2}} \left( -\frac{1}{N} \sum_{i=1}^{N} \pdv{f}{y_i} - (x_j - \mu) (v + \epsilon)^{-1} \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu) \pdv{f}{y_i} + \pdv{f}{y_j} \right)
+\end{gather*}
+
+\newpage
+
+Knowing that, it's easy to write expression in matrix form:
+
+\[
+	\pdv{f}{X} = \gamma (v + \epsilon)^{-\frac{1}{2}} \left( -\frac{1}{N} \sum_{i=1}^{N} \pdv{f}{y_i} - (X - \mu) (v + \epsilon)^{-1} \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu) \pdv{f}{y_i} + \pdv{f}{Y} \right) 
+\]
+
+Here $x, y, v, \mu, \gamma \in \mathbb{R}^D$.
+
+\end{document}
