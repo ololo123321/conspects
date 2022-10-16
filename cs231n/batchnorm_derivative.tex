@@ -3,10 +3,11 @@
 \usepackage{amssymb}
 \usepackage{derivative}
 \usepackage{tikz}
+\usepackage{xcolor}
 
 \begin{document}
 
-\title{Derivative of BatchNorm operation w.r.t $X$}
+\title{Derivative of BatchNorm and LayerNorm operation w.r.t $X$}
 \author{Kadulin V.}
 %\date{}
 \maketitle
@@ -15,11 +16,13 @@ Let $Y = \gamma \hat{X} + \beta$, where
 $\hat{X} \in \mathbb{R}^{N \times D}$, 
 $\gamma \in \mathbb{R}^D$, 
 $\beta \in \mathbb{R}^D$, 
-$\hat{X} = \frac{X - \mu}{\sigma}$, 
+$\hat{X} = \frac{X - \mu}{\sigma}$.
+Let's start from BatchNorm case, where  
 $\mu = \frac{1}{N} \sum_{i=1}^{N} x_{i}$,
-$\sigma = \sqrt{v + \epsilon}$,
 $v = \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu)^2$,
+$\sigma = \sqrt{v + \epsilon}$,
 $\epsilon \in \mathbb{R}$ is a small scalar to omit zero division. 
+
 Let $f: \mathbb{R}^{N \times D} \rightarrow \mathbb{R}$ is a differentiable scalar function. We also know $\pdv{f}{Y}$.
 Derive $\pdv{f}{X}$.
 
@@ -75,7 +78,7 @@ $
 \pdv{y_i}{x_j} = 
 \begin{cases}
 2 (x_i - \mu) (1 - \frac{1}{N}) = -\frac{2}{N} (x_i - \mu) + 2(x_i - \mu) & \text{$i = j$} \\
--\frac{2}{N} (x_i - \mu) & \text{$i = j$}
+-\frac{2}{N} (x_i - \mu) & \text{$i \ne j$}
 \end{cases}
 $ 
 
@@ -196,5 +199,33 @@ Now let's derive $\pdv{f}{x_j}$:
 \end{gather*}
 
 Note that result is the same as in previous approach.
+
+\section{LayerNorm}
+
+This operation differs from BatchNorm in a single aspect: $\mu$ and $v$ are calculated by columns instead of rows. This implies the following changes:
+
+$\pdv{y_i}{\hat{x_i}} = \gamma_i$
+
+$\pdv{\mu}{x_j} = \frac{1}{D}$
+
+
+So, the equation for LayerNorm operation looks as follows:
+
+\[	
+	\pdv{f}{X} = 
+	(v + \epsilon)^{-\frac{1}{2}} 
+	\left(	
+		- \frac{1}{\begingroup\color{red} D \endgroup} 
+		\sum_{i=1}^{\begingroup\color{red} D \endgroup} 
+		\begingroup\color{red} \gamma_i \endgroup
+		\pdv{f}{y_i}
+		- (X - \mu) (v + \epsilon)^{-1} 
+		\frac{1}{\begingroup\color{red} D \endgroup} 
+		\sum_{i=1}^{\begingroup\color{red} D \endgroup} 
+		\begingroup\color{red} \gamma_i \endgroup
+		(x_i - \mu) \pdv{f}{y_i} 
+		+ \begingroup\color{red} \gamma_j \endgroup \pdv{f}{Y}
+	\right)
+\]
 
 \end{document}
