@@ -142,6 +142,8 @@ Let's draw a computation graph:
 \draw[->] (6) -- (7);
 \end{tikzpicture}
 
+Note that there are three paths from $x_j$ and two paths from $\mu$. So, derivative expressions through these nodes will consist of three and two terms respectively:
+
 \[
 	\pdv{f}{x_j} = 
 	\sum_{i=1}^{N}
@@ -227,5 +229,47 @@ So, the equation for LayerNorm operation looks as follows:
 		+ \begingroup\color{red} \gamma \endgroup \pdv{f}{Y}
 	\right)
 \]
+
+\section{Other normalization methods}
+
+Now we know two normalization methods for 2-D case: BatchNorm and LayerNorm. But there are some details in case of images, which have a spatial structure. Consider a batch of images of shape $\mathbb{R}^{N \times C \times H \times W}$, where $N$ - batch size, $C$ - number of channels (or feature maps), $H$ - height, $W$ - width.
+
+Here is a comparison of different normalization methods:
+
+\begin{center}
+\begin{tabular}{||l c c c||} 
+ \hline
+ name & per & over & norm \\ [0.5ex] 
+ \hline
+ \hline 
+ 
+ BatchNorm & D & N & D \\ 
+ \hline
+ LayerNorm & N & D & D \\
+ \hline
+ Spatial BatchNorm & C & N, H, W & C \\
+ \hline
+ GroupNorm & N, G & C / G, H, W & C \\
+ \hline
+ InstanceNorm & N, C & H, W & C \\ [1ex] 
+ \hline
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+\item \textit{per} - independent elements
+\item \textit{over} - computing moments
+\item \textit{norm} - scale and shift axis
+\end{itemize}
+
+Some notes about each method:
+
+\begin{itemize}
+\item BatchNorm -- normalizes each feature independently. Quality of moments depends of batch size - higher is better.
+\item LayerNorm -- computes statistics accross whole features. This fact makes it more preferable in case of small batches. Assumes equal contribution of each feature.
+\item Spatial BatchNorm -- normalizes each feature map independently. Makes statistics consistent accross different images and image regions.
+\item GroupNorm -- LayerNorm analogue for images, where aggregation is also done per channel groups: hypothesis is that feature maps are grouped by some factors like frequency, shapes, illumination, textures (examples from original paper). If so, each group might have different moments. Parametrized by $G$ - number of groups of feature maps.
+\item InstanceNorm -- special case of GroupNorm where $G = 1$.
+\end{itemize}
 
 \end{document}
