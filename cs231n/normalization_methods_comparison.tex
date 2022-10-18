@@ -1,0 +1,190 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{derivative}
+\usepackage{tikz}
+\usepackage{xcolor}
+
+\begin{document}
+
+\title{Derivative expressions for some normalization operations based on BatchNorm}
+\author{Kadulin V.}
+%\date{}
+\maketitle
+
+Let's remind BatchNorm for 2-D case: 
+$Y = \gamma \hat{X} + \beta$, 
+$\hat{X} \in \mathbb{R}^{N \times D}$, 
+$\gamma \in \mathbb{R}^D$, 
+$\beta \in \mathbb{R}^D$, 
+$\hat{X} = \frac{X - \mu}{\sigma}$,  
+$\mu = \frac{1}{N} \sum_{i=1}^{N} x_{i}$,
+$v = \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu)^2$,
+$\sigma = \sqrt{v + \epsilon}$,
+$\epsilon \in \mathbb{R}$ is a small scalar to omit zero division. 
+
+Let $f: \mathbb{R}^{N \times D} \rightarrow \mathbb{R}$ is a differentiable scalar function, and $\pdv{f}{Y}$ is known.
+
+BatchNorm operation is applied columnwise in 2-D case. So, in case of $k$-th column the derivative expressions looks as follows:
+
+\[
+	\pdv{f}{\gamma} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\gamma} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \hat{x_i}
+\]
+
+\[
+	\pdv{f}{\beta} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\beta} =
+	\sum_{i=1}^{N} \pdv{f}{y_i}
+\]
+
+\begin{gather*}
+\pdv{f}{x_j} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\hat{x_i}} \pdv{\hat{x_i}}{x_j} = \\
+	\gamma (v + \epsilon)^{-\frac{1}{2}} 
+	\left(	
+		- \frac{1}{N} \sum_{i=1}^{N} \pdv{f}{y_i}
+		- (x_j - \mu) (v + \epsilon)^{-1} \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu) \pdv{f}{y_i} 
+		+ \pdv{f}{y_j}
+	\right)
+\end{gather*}
+
+where $y, x, \hat{x} \in \mathbb{R}^N$ represents the $k$-th column of $Y, X, \hat{X}$ respectively, $\gamma, \beta, \mu, v, \sigma \in \mathbb{R}$ represents the $k$-th values of the same named vectors.
+
+Let's derive the same expressions for the following normalization methods: LayerNorm, spatial BatchNorm, GroupNorm, InstanceNorm.
+
+\section*{LayerNorm}
+
+Differences from BatchNorm:
+
+\begin{itemize}
+\item $x$ is a row of $X$
+\item $\mu = \frac{1}{\begingroup\color{red} D \endgroup} 
+\sum_{i=1}^{\begingroup\color{red} D \endgroup} x_{i}$
+\item $v = \frac{1}{\begingroup\color{red} D \endgroup} 
+\sum_{i=1}^{\begingroup\color{red} D \endgroup} (x_i - \mu)^2$
+\end{itemize}
+
+This implies the following changes:
+
+\begin{itemize}
+\item $\gamma$ is a $\mathbb{R}^D$ vector
+\item $\pdv{y_i}{\hat{x_i}} = \gamma_i$
+\item $\pdv{\mu}{x_j} = \frac{1}{D}$
+\end{itemize}
+
+
+So, the equation for $\pdv{f}{x_j}$ in case of LayerNorm looks as follows:
+
+\[	
+	\pdv{f}{x_j} = 
+	(v + \epsilon)^{-\frac{1}{2}} 
+	\left(	
+		- \frac{1}{\begingroup\color{red} D \endgroup} 
+		\sum_{i=1}^{\begingroup\color{red} D \endgroup} 
+		\begingroup\color{red} \gamma_i \endgroup
+		\pdv{f}{y_i}
+		- (x_j - \mu) (v + \epsilon)^{-1} 
+		\frac{1}{\begingroup\color{red} D \endgroup} 
+		\sum_{i=1}^{\begingroup\color{red} D \endgroup} 
+		\begingroup\color{red} \gamma_i \endgroup
+		(x_i - \mu) \pdv{f}{y_i} 
+		+ \begingroup\color{red} \gamma_j \endgroup \pdv{f}{y_j}
+	\right)
+\]
+
+$\pdv{f}{\gamma}$, $\pdv{f}{\beta}$ are not changed.
+
+\section*{Other normalization methods}
+
+Now we know two normalization methods for 2-D case: BatchNorm and LayerNorm. But there are some details in case of images, which have a spatial structure. Consider a batch of images of shape $\mathbb{R}^{N \times C \times H \times W}$, where $N$ - batch size, $C$ - number of channels (or feature maps), $H$ - height, $W$ - width.
+
+We only need equations $\pdv{f}{\gamma}, \pdv{f}{\beta}$ for BatchNorm and $\pdv{f}{x_j}$ for LayerNorm to get all expressions for all these kinds of normalisations. Differences will be in input tensors dimentions, axes to accumulate $\pdv{f}{\gamma}, \pdv{f}{\beta}$, axes to accumulate intermediate values for $\pdv{f}{x_j}$. Table below summarises these changes:
+
+\begin{center}
+\begin{tabular}{||l c c c||} 
+ \hline
+ name & per & over & norm \\ [0.5ex] 
+ \hline
+ \hline 
+ 
+ BatchNorm & D & N & D \\ 
+ \hline
+ LayerNorm & N & D & D \\
+ \hline
+ Spatial BatchNorm & C & N, H, W & C \\
+ \hline
+ GroupNorm & N, G & C / G, H, W & C \\
+ \hline
+ InstanceNorm & N, C & H, W & C \\ [1ex] 
+ \hline
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+\item \textit{per} - independent input elements
+\item \textit{over} - axes to group for computing $\mu$ and $v$
+\item \textit{norm} - scale and shift axis
+\end{itemize}
+
+For example, derivatives of Spatial BatchNorm are as follows:
+
+\[
+	\pdv{f}{\gamma_j} = 
+	\sum_{
+		\substack{
+			1 \le i \le N \\ 
+			1 \le k \le H \\ 
+			1 \le m \le W
+		}
+	} \pdv{f}{Y_{ijkm}} \hat{X}_{ijkm}
+\]
+
+\[
+	\pdv{f}{\beta_j} = 
+	\sum_{
+		\substack{
+			1 \le i \le N \\ 
+			1 \le k \le H \\ 
+			1 \le m \le W
+		}
+	} \pdv{f}{Y_{ijkm}}
+\]
+
+\begin{gather*}
+\pdv{f}{X_{ijkm}} =
+	\gamma_j (v_j + \epsilon)^{-\frac{1}{2}} 
+	\Biggl(	
+		- \frac{1}{NHW} \sum_{
+			\substack{
+				1 \le i' \le N \\ 
+				1 \le k' \le H \\ 
+				1 \le m' \le W
+			}
+		} \pdv{f}{Y_{i'jk'm'}} - \\
+		(X_{ijkm} - \mu_j) (v_j + \epsilon)^{-1} 
+		\frac{1}{NHW} \sum_{
+			\substack{
+				1 \le i \le N \\ 
+				1 \le k \le H \\ 
+				1 \le m \le W
+			}
+		} (X_{i'jk'm'} - \mu_j) \pdv{f}{Y_{i'jk'm'}} 
+		+ \pdv{f}{Y_{ijkm}}
+	\Biggr)
+\end{gather*}
+
+\newpage
+
+Some notes about each method:
+
+\begin{itemize}
+\item BatchNorm -- normalizes each feature independently. Quality of moments depends on batch size - higher is better.
+\item LayerNorm -- computes statistics accross whole features. This fact makes it more preferable in case of small batches. Assumes equal contribution of each feature.
+\item Spatial BatchNorm -- normalizes each feature map independently. Makes statistics consistent accross different images and image regions.
+\item GroupNorm -- LayerNorm analogue for images, where aggregation is also done per channel groups: hypothesis is that feature maps are grouped by some factors like frequency, shapes, illumination, textures (examples from original paper). If so, each group might have different moments. Parametrized by $G$ - number of groups of feature maps.
+\item InstanceNorm -- special case of GroupNorm where $G = C$.
+\end{itemize}
+
+\end{document}

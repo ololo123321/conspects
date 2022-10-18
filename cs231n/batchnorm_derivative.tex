@@ -7,7 +7,7 @@
 
 \begin{document}
 
-\title{Derivative of BatchNorm and LayerNorm operation w.r.t $X$}
+\title{Derivative of scalar function w.r.t. arguments of BatchNorm operation}
 \author{Kadulin V.}
 %\date{}
 \maketitle
@@ -16,23 +16,23 @@ Let $Y = \gamma \hat{X} + \beta$, where
 $\hat{X} \in \mathbb{R}^{N \times D}$, 
 $\gamma \in \mathbb{R}^D$, 
 $\beta \in \mathbb{R}^D$, 
-$\hat{X} = \frac{X - \mu}{\sigma}$.
-Let's start from BatchNorm case, where  
+$\hat{X} = \frac{X - \mu}{\sigma}$,  
 $\mu = \frac{1}{N} \sum_{i=1}^{N} x_{i}$,
 $v = \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu)^2$,
 $\sigma = \sqrt{v + \epsilon}$,
 $\epsilon \in \mathbb{R}$ is a small scalar to omit zero division. 
 
 Let $f: \mathbb{R}^{N \times D} \rightarrow \mathbb{R}$ is a differentiable scalar function. We also know $\pdv{f}{Y}$.
-Derive $\pdv{f}{X}$.
+Derive $\pdv{f}{X}$, $\pdv{f}{\gamma}$, $\pdv{f}{\beta}$.
 
 Notice that
 \begin{itemize}
 \item $y_i$ depends on $x_j$, where $1 \le j \le N$
 \item there is only per-column dependency: $y_{ij}$ depends on $x_{kj}$, where $1 \le k \le N$
+\item $\gamma_j$ and $\beta_{j}$ is the same for all ${y_{ij}}$, $1 \le i \le N$, $1 \le j \le D$.
 \end{itemize}
 
-Consider first column of $X$ as $x$.
+Because columns are independent, consider $j$-th column of $X$ as $x$. Hence,
 
 \begin{equation*}
 \begin{split}
@@ -42,14 +42,28 @@ y, x, \hat{x} \in \mathbb{R}^N \\
 \end{split}
 \end{equation*}
 
-Let's consider $j$-th element of $x$ as $x_j$.
+$\pdv{f}{x_j} = \sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\hat{x_i}} \pdv{\hat{x_i}}{x_j}$, where $x_j$ is the $j$-th element of $x$.
 
-\[
-	\pdv{f}{x_j} = 
-	\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\hat{x_i}} \pdv{\hat{x_i}}{x_j}
-\]
+$
+	\pdv{f}{\gamma} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\gamma} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \hat{x_i}
+$
 
-\newpage
+$
+	\pdv{f}{\beta} = 
+	\sum_{i=1}^{N} \pdv{f}{y_i} \pdv{y_i}{\beta} =
+	\sum_{i=1}^{N} \pdv{f}{y_i}
+$
+
+Tricky part here is $\pdv{f}{x_j}$. Let's derive it with two approaches: forward-mode differentiation (deriving $\pdv{f}{x_j}$ directly from $f(x_j)$) and backward-mode differentiation (through writing computation graph and traversing it in reverse mode: from $f$ to $x_j$).
+
+Knowing expression for $\pdv{f}{x_j}$, expression for $\pdv{f}{X}$ comes straightforwardly from it.
+
+
+%\newpage
+
+\section*{Forward-mode differentiation}  
 
 Let's derive expressions for building blocks:
 
@@ -69,8 +83,6 @@ $
 $
 
 Let's derive $\pdv{v}{x_j}$.
-
-\section{Forward-mode differentiation}
 
 Consider $i$-th component of sum in $v$ as $y_i$.
 
@@ -111,15 +123,9 @@ Now we have all to derive $\pdv{f}{x_j}$:
 \gamma (v + \epsilon)^{-\frac{1}{2}} \left( -\frac{1}{N} \sum_{i=1}^{N} \pdv{f}{y_i} - (x_j - \mu) (v + \epsilon)^{-1} \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu) \pdv{f}{y_i} + \pdv{f}{y_j} \right)
 \end{gather*}
 
-Knowing that, it's easy to write expression in matrix form:
+%\newpage
 
-\[
-	\pdv{f}{X} = \gamma (v + \epsilon)^{-\frac{1}{2}} \left( -\frac{1}{N} \sum_{i=1}^{N} \pdv{f}{y_i} - (X - \mu) (v + \epsilon)^{-1} \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu) \pdv{f}{y_i} + \pdv{f}{Y} \right) 
-\]
-
-Here $x, y, v, \mu, \gamma \in \mathbb{R}^D$.
-
-\section{Backward-mode differentiation}
+\section*{Backward-mode differentiation}
 
 Let's draw a computation graph:
 
@@ -202,74 +208,12 @@ Now let's derive $\pdv{f}{x_j}$:
 
 Note that result is the same as in previous approach.
 
-\section{LayerNorm}
+Knowing $\pdv{f}{x_j}$, it's easy to write $\pdv{f}{X}$:
 
-This operation differs from BatchNorm in a single aspect: $\mu$ and $v$ are calculated by columns instead of rows. This implies the following changes:
-
-$\pdv{y_i}{\hat{x_i}} = \gamma_i$
-
-$\pdv{\mu}{x_j} = \frac{1}{D}$
-
-
-So, the equation for LayerNorm operation looks as follows:
-
-\[	
-	\pdv{f}{X} = 
-	(v + \epsilon)^{-\frac{1}{2}} 
-	\left(	
-		- \frac{1}{\begingroup\color{red} D \endgroup} 
-		\sum_{i=1}^{\begingroup\color{red} D \endgroup} 
-		\begingroup\color{red} \gamma_i \endgroup
-		\pdv{f}{y_i}
-		- (X - \mu) (v + \epsilon)^{-1} 
-		\frac{1}{\begingroup\color{red} D \endgroup} 
-		\sum_{i=1}^{\begingroup\color{red} D \endgroup} 
-		\begingroup\color{red} \gamma_i \endgroup
-		(x_i - \mu) \pdv{f}{y_i} 
-		+ \begingroup\color{red} \gamma \endgroup \pdv{f}{Y}
-	\right)
+\[
+	\pdv{f}{X} = \gamma (v + \epsilon)^{-\frac{1}{2}} \left( -\frac{1}{N} \sum_{i=1}^{N} \pdv{f}{y_i} - (X - \mu) (v + \epsilon)^{-1} \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu) \pdv{f}{y_i} + \pdv{f}{Y} \right) 
 \]
 
-\section{Other normalization methods}
-
-Now we know two normalization methods for 2-D case: BatchNorm and LayerNorm. But there are some details in case of images, which have a spatial structure. Consider a batch of images of shape $\mathbb{R}^{N \times C \times H \times W}$, where $N$ - batch size, $C$ - number of channels (or feature maps), $H$ - height, $W$ - width.
-
-Here is a comparison of different normalization methods:
-
-\begin{center}
-\begin{tabular}{||l c c c||} 
- \hline
- name & per & over & norm \\ [0.5ex] 
- \hline
- \hline 
- 
- BatchNorm & D & N & D \\ 
- \hline
- LayerNorm & N & D & D \\
- \hline
- Spatial BatchNorm & C & N, H, W & C \\
- \hline
- GroupNorm & N, G & C / G, H, W & C \\
- \hline
- InstanceNorm & N, C & H, W & C \\ [1ex] 
- \hline
-\end{tabular}
-\end{center}
-
-\begin{itemize}
-\item \textit{per} - independent elements
-\item \textit{over} - computing moments
-\item \textit{norm} - scale and shift axis
-\end{itemize}
-
-Some notes about each method:
-
-\begin{itemize}
-\item BatchNorm -- normalizes each feature independently. Quality of moments depends of batch size - higher is better.
-\item LayerNorm -- computes statistics accross whole features. This fact makes it more preferable in case of small batches. Assumes equal contribution of each feature.
-\item Spatial BatchNorm -- normalizes each feature map independently. Makes statistics consistent accross different images and image regions.
-\item GroupNorm -- LayerNorm analogue for images, where aggregation is also done per channel groups: hypothesis is that feature maps are grouped by some factors like frequency, shapes, illumination, textures (examples from original paper). If so, each group might have different moments. Parametrized by $G$ - number of groups of feature maps.
-\item InstanceNorm -- special case of GroupNorm where $G = 1$.
-\end{itemize}
+Here $x, y, v, \mu, \gamma \in \mathbb{R}^D$.
 
 \end{document}
